@@ -1,0 +1,8 @@
+{
+    "name": "Shadow",
+    "description": "Personal and opionated repo",
+    "manifestVersion": 1,
+    "pluginLists": [
+        "https://raw.githubusercontent.com/zoneofmakos/Shadow/builds/plugins.json"
+    ]
+}
