@@ -1,0 +1,121 @@
+[
+    {
+        "iconUrl": "https://github.com/zoneofmakos/Shadow/raw/refs/heads/main/IsaiDubProvider/icon.png",
+        "fileHash": "sha256-a4c822872dd33f090b78c55188e531d913abc618b1e2017229251a451cbcb81a",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/zoneofmakos/Shadow",
+        "fileSize": 22174,
+        "status": 1,
+        "language": "ta",
+        "authors": [
+            "zoneofmakos"
+        ],
+        "tvTypes": [
+            "Movie",
+            "TvSeries"
+        ],
+        "version": 1,
+        "internalName": "IsaiDubProvider",
+        "description": "Tamil dubbed movies and web series",
+        "url": "https://raw.githubusercontent.com/zoneofmakos/Shadow/builds/IsaiDubProvider.cs3",
+        "name": "IsaiDubProvider"
+    },
+    {
+        "fileHash": "sha256-d3247b2ca4c2ffc2f9c1aed8293e0517533eaa89c11ee1756df5c0b704b74c8e",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/zoneofmakos/Shadow",
+        "fileSize": 34953,
+        "status": 1,
+        "language": "en",
+        "authors": [
+            "errorcodeQQ",
+            "Reflex1337",
+            "zoneofmakos"
+        ],
+        "tvTypes": [
+            "Others"
+        ],
+        "version": 2,
+        "internalName": "Karuppan",
+        "url": "https://raw.githubusercontent.com/zoneofmakos/Shadow/builds/Karuppan.cs3",
+        "name": "Karuppan"
+    },
+    {
+        "fileHash": "sha256-0c3f04d115c76ff8be3bc86ff046a1fc997a340da471884fddc6a0da9b2e11dd",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/zoneofmakos/Shadow",
+        "fileSize": 1780,
+        "status": 1,
+        "language": "en",
+        "authors": [
+            "zoneofmakos"
+        ],
+        "tvTypes": [
+            "Others"
+        ],
+        "version": 2,
+        "internalName": "Michael",
+        "url": "https://raw.githubusercontent.com/zoneofmakos/Shadow/builds/Michael.cs3",
+        "name": "Michael"
+    },
+    {
+        "iconUrl": "https://github.com/zoneofmakos/Shadow/raw/refs/heads/main/MoviesdaProvider/icon.png",
+        "fileHash": "sha256-6427807d175983ad63fc623772e1081fac207633d2eb9016d1e288b4d6b546a4",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/zoneofmakos/Shadow",
+        "fileSize": 25972,
+        "status": 1,
+        "language": "ta",
+        "authors": [
+            "zoneofmakos"
+        ],
+        "tvTypes": [
+            "Movie",
+            "TvSeries"
+        ],
+        "version": 1,
+        "internalName": "MoviesdaProvider",
+        "description": "Latest tamil movies and web series",
+        "url": "https://raw.githubusercontent.com/zoneofmakos/Shadow/builds/MoviesdaProvider.cs3",
+        "name": "MoviesdaProvider"
+    },
+    {
+        "iconUrl": "https://raw.githubusercontent.com/zoneofmakos/Shadow/main/ShadowTV/television.png",
+        "fileHash": "sha256-dc197650553eadf6c7f667c38158189a33570f415accb7322aa6d933ca3eabfd",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/zoneofmakos/Shadow",
+        "fileSize": 43554,
+        "status": 1,
+        "language": "ta",
+        "authors": [
+            "zoneofmakos"
+        ],
+        "tvTypes": [
+            "Live"
+        ],
+        "version": 8,
+        "internalName": "ShadowTV",
+        "url": "https://raw.githubusercontent.com/zoneofmakos/Shadow/builds/ShadowTV.cs3",
+        "name": "ShadowTV"
+    },
+    {
+        "iconUrl": "https://raw.githubusercontent.com/zoneofmakos/Shadow/main/TelegramProvider/icon.png",
+        "fileHash": "sha256-b336ea9f252b57f25519100c5fe29551f2ca93909d45e0cc637340838269566e",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/zoneofmakos/Shadow",
+        "fileSize": 18458556,
+        "status": 1,
+        "language": "en",
+        "authors": [
+            "zoneofmakos"
+        ],
+        "tvTypes": [
+            "Movie"
+        ],
+        "version": 3,
+        "internalName": "TelegramProvider",
+        "description": "Stream any media from your Telegram chats and channels on-demand",
+        "url": "https://raw.githubusercontent.com/zoneofmakos/Shadow/builds/TelegramProvider.cs3",
+        "name": "TelegramProvider"
+    }
+]
