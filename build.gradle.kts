@@ -84,6 +84,11 @@ subprojects {
         implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
         implementation("com.github.vidstige:jadb:v1.2.1")
         implementation("org.bouncycastle:bcpkix-jdk15on:1.70")
+
+        implementation("androidx.core:core-ktx:1.13.1")
+        implementation("androidx.appcompat:appcompat:1.7.0")
+        implementation("com.google.android.material:material:1.12.0")
+        implementation("androidx.fragment:fragment-ktx:1.8.2")
     }
 }
 
