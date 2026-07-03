@@ -67,6 +67,7 @@ class ShadowTV(
     val streams: List<SourceStream> = emptyList()
 ) : MainAPI() {
     override var name = "Shadow TV"
+    override var lang = "ta"
 
     override val hasMainPage          = true
     override val hasChromecastSupport = true
