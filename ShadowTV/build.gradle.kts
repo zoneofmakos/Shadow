@@ -9,17 +9,14 @@ android {
 }
 
 cloudstream {
-    language = "en"
+    language = "ta"
     requiresResources = true
-    description = "CloudPlay Live TV Extension"
-    authors = listOf("Phisher98")
+    authors = listOf("zoneofmakos")
 
     status = 1
     tvTypes = listOf(
         "Live",
     )
 
-    iconUrl = "https://raw.githubusercontent.com/phisher98/TVVVV/refs/heads/main/Icons/cloudplay.jpg"
-
-    isCrossPlatform = false
+    iconUrl = "https://raw.githubusercontent.com/zoneofmakos/Shadow/main/ShadowTV/television.png"
 }
