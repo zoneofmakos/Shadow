@@ -93,7 +93,7 @@ class ShadowTV(
             val request = Request.Builder()
                 .url(url)
                 .header(
-                    "User-Agent", "OTT Navigator/1.7.1.4 (Linux;Android 13; en; 1fin92n)"
+                    "User-Agent", "okhttp/4.12.0"
                 )
                 .build()
 
