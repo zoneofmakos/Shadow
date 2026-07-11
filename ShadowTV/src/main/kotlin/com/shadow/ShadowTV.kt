@@ -30,7 +30,8 @@ import kotlinx.coroutines.runBlocking
 data class SourceStream(
     val name: String,
     val url:  String,
-    val type: String           // "m3u" | "m3u8" → M3U parser   "json" → JSON parser
+    val type: String,           // "m3u" | "m3u8" → M3U parser   "json" → JSON parser
+    val ua:   String?,
 )
 
 data class Channel(
@@ -93,7 +94,7 @@ class ShadowTV(
             val request = Request.Builder()
                 .url(url)
                 .header(
-                    "User-Agent", "okhttp/4.12.0"
+                    "User-Agent", src.ua ?: "okhttp/4.12.0"
                 )
                 .build()
 
@@ -105,8 +106,8 @@ class ShadowTV(
         if (text.isBlank()) return
 
         val parsed: List<Channel> = when (type) {
-            "m3u", "m3u8" -> parseM3u(text, src.name)
-            "cloudplay"        -> parseCloudPlayChannels(text, src.name)
+            "m3u", "m3u8" -> parseM3u(text, src.name, src.ua)
+            "cloudplay"        -> parseCloudPlayChannels(text, src.name, src.ua)
             else          -> emptyList()
         }
 
@@ -261,8 +262,8 @@ class ShadowTV(
      *
      * user_agent is merged into headers["User-Agent"] so loadLinks sees one map.
      */
-    private fun parseCloudPlayChannels(text: String, sourceStreamName: String?): List<Channel> = try {
-        val defaultUA = "okhttp/4.12.0"
+    private fun parseCloudPlayChannels(text: String, sourceStreamName: String?, sourceUA: String?): List<Channel> = try {
+        val defaultUA = sourceUA ?: "okhttp/4.12.0"
         parseJson<List<CloudPlayChannel>>(text).mapNotNull { raw ->
             val channelName = raw.name?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
 
@@ -299,9 +300,9 @@ class ShadowTV(
      * Stream type: URL contains ".mpd" → DASH (mpd_url), otherwise HLS (m3u8_url).
      * No #KODIPROP manifest_type check needed.
      */
-    private fun parseM3u(text: String, sourceStreamName: String?): List<Channel> {
+    private fun parseM3u(text: String, sourceStreamName: String?, sourceUA: String?): List<Channel> {
         val result    = mutableListOf<Channel>()
-        val defaultUA = "okhttp/4.12.0"
+        val defaultUA = sourceUA ?: "okhttp/4.12.0"
 
         var name = "";    var logo = "";       var group = ""
         var licUrl = "";  var userAgent = "";  var referer = ""
