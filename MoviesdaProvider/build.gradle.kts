@@ -25,5 +25,5 @@ cloudstream {
 
     tvTypes = listOf("Movie", "TvSeries")
 
-    iconUrl = "https://github.com/zoneofmakos/Shadow/raw/refs/heads/master/MoviesdaProvider/icon.png"
+    iconUrl = "https://github.com/zoneofmakos/Shadow/raw/refs/heads/main/MoviesdaProvider/icon.png"
 }
