@@ -1,0 +1,481 @@
+package com.telegram
+
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.graphics.Color
+import android.os.Bundle
+import android.text.InputType
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.*
+import androidx.lifecycle.lifecycleScope
+import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import kotlinx.coroutines.launch
+
+class TelegramSettingsFragment(private val plugin: TelegramPlugin) : BottomSheetDialogFragment() {
+
+    private lateinit var mainContainer: LinearLayout
+    private lateinit var formContainer: LinearLayout
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        val context = requireContext()
+        mainContainer = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            padding = 24
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        }
+
+        val titleView = TextView(context).apply {
+            text = "Telegram Extension Settings"
+            textSize = 20f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(Color.WHITE)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setMargins(0, 0, 0, 16)
+            }
+        }
+        mainContainer.addView(titleView)
+
+        formContainer = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+        mainContainer.addView(formContainer)
+
+        return mainContainer
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        viewLifecycleOwner.lifecycleScope.launch {
+            TelegramRepository.authState.collect { state ->
+                updateUi(state)
+            }
+        }
+    }
+
+    private fun updateUi(state: TelegramAuthState) {
+        val context = context ?: return
+        formContainer.removeAllViews()
+
+        val layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply {
+            setMargins(0, 8, 0, 8)
+        }
+
+        when (state) {
+            is TelegramAuthState.Idle -> {
+                val tutorialText = TextView(context).apply {
+                    text = "To use this plugin securely, you must provide your own Telegram API ID and API Hash.\n1. Go to my.telegram.org and log in.\n2. Click 'API development tools'.\n3. Create an application to get your api_id and api_hash."
+                    setTextColor(Color.LTGRAY)
+                    textSize = 12f
+                }
+                val currentApiId = TelegramRepository.getApiId(context)
+                val currentApiHash = TelegramRepository.getApiHash(context)
+
+                val apiIdInput = EditText(context).apply {
+                    inputType = InputType.TYPE_CLASS_NUMBER
+                    hint = "API ID (e.g. 1234567)"
+                    if (currentApiId != 0) setText(currentApiId.toString())
+                    setTextColor(Color.WHITE)
+                    setHintTextColor(Color.GRAY)
+                }
+                val apiHashInput = EditText(context).apply {
+                    inputType = InputType.TYPE_CLASS_TEXT
+                    hint = "API Hash (e.g. 0123456789abcdef)"
+                    setText(currentApiHash)
+                    setTextColor(Color.WHITE)
+                    setHintTextColor(Color.GRAY)
+                }
+                val btn = Button(context).apply {
+                    text = "Save and Login"
+                    setOnClickListener {
+                        val idStr = apiIdInput.text.toString().trim()
+                        val hash = apiHashInput.text.toString().trim()
+                        val id = idStr.toIntOrNull()
+                        if (id == null || id <= 0 || hash.isBlank()) {
+                            Toast.makeText(context, "Please enter a valid API ID and Hash", Toast.LENGTH_SHORT).show()
+                        } else {
+                            TelegramRepository.saveApiId(context, id)
+                            TelegramRepository.saveApiHash(context, hash)
+                            TelegramRepository.startAuth(context)
+                        }
+                    }
+                }
+                formContainer.addView(tutorialText, layoutParams)
+                formContainer.addView(apiIdInput, layoutParams)
+                formContainer.addView(apiHashInput, layoutParams)
+                formContainer.addView(btn, layoutParams)
+                addDetailedLogView(context, layoutParams)
+            }
+            is TelegramAuthState.Initializing -> {
+                val tv = TextView(context).apply {
+                    text = "Initializing TDLib..."
+                    setTextColor(Color.WHITE)
+                }
+                val p = ProgressBar(context)
+                formContainer.addView(tv, layoutParams)
+                formContainer.addView(p, layoutParams)
+                addDetailedLogView(context, layoutParams)
+            }
+            is TelegramAuthState.WaitPhone -> {
+                val tv = TextView(context).apply {
+                    text = "Enter Phone Number (e.g. +1234567890):"
+                    setTextColor(Color.WHITE)
+                }
+                val et = EditText(context).apply {
+                    inputType = InputType.TYPE_CLASS_PHONE
+                    hint = "+1234567890"
+                    setTextColor(Color.WHITE)
+                    setHintTextColor(Color.GRAY)
+                }
+                val btn = Button(context).apply {
+                    text = "Submit Phone"
+                    setOnClickListener {
+                        val phone = et.text.toString().trim()
+                        if (phone.isNotEmpty()) {
+                            TelegramRepository.submitPhone(phone)
+                        } else {
+                            Toast.makeText(context, "Please enter a valid number", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+                formContainer.addView(tv, layoutParams)
+                formContainer.addView(et, layoutParams)
+                formContainer.addView(btn, layoutParams)
+            }
+            is TelegramAuthState.WaitQr -> {
+                val tv = TextView(context).apply {
+                    text = "QR Code login is requested. Link: ${state.link}"
+                    setTextColor(Color.WHITE)
+                }
+                formContainer.addView(tv, layoutParams)
+            }
+            is TelegramAuthState.WaitCode -> {
+                val tv = TextView(context).apply {
+                    text = "Enter the SMS/App authentication code (length: ${state.codeLength}):"
+                    setTextColor(Color.WHITE)
+                }
+                val et = EditText(context).apply {
+                    inputType = InputType.TYPE_CLASS_NUMBER
+                    hint = "Code"
+                    setTextColor(Color.WHITE)
+                    setHintTextColor(Color.GRAY)
+                }
+                val btn = Button(context).apply {
+                    text = "Submit Code"
+                    setOnClickListener {
+                        val code = et.text.toString().trim()
+                        if (code.isNotEmpty()) {
+                            TelegramRepository.submitCode(code)
+                        } else {
+                            Toast.makeText(context, "Please enter the code", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+                val resetBtn = Button(context).apply {
+                    text = "Wrong number? Go Back"
+                    setOnClickListener {
+                        TelegramRepository.disconnect(context)
+                    }
+                }
+                formContainer.addView(tv, layoutParams)
+                formContainer.addView(et, layoutParams)
+                formContainer.addView(btn, layoutParams)
+                formContainer.addView(resetBtn, layoutParams)
+            }
+            is TelegramAuthState.WaitPassword -> {
+                val tv = TextView(context).apply {
+                    text = "Enter Two-Step Verification Password:"
+                    setTextColor(Color.WHITE)
+                }
+                val et = EditText(context).apply {
+                    inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+                    hint = "Password"
+                    setTextColor(Color.WHITE)
+                    setHintTextColor(Color.GRAY)
+                }
+                val btn = Button(context).apply {
+                    text = "Submit Password"
+                    setOnClickListener {
+                        val pass = et.text.toString().trim()
+                        if (pass.isNotEmpty()) {
+                            TelegramRepository.submitPassword(pass)
+                        } else {
+                            Toast.makeText(context, "Please enter your password", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+                val resetBtn = Button(context).apply {
+                    text = "Forgot password / Go Back"
+                    setOnClickListener {
+                        TelegramRepository.disconnect(context)
+                    }
+                }
+                formContainer.addView(tv, layoutParams)
+                formContainer.addView(et, layoutParams)
+                formContainer.addView(btn, layoutParams)
+                formContainer.addView(resetBtn, layoutParams)
+            }
+            is TelegramAuthState.Ready -> {
+                val tv = TextView(context).apply {
+                    text = "Status: Connected\nUser: ${state.firstName} (ID: ${state.userId})"
+                    textSize = 16f
+                    setTextColor(Color.GREEN)
+                }
+
+                // Catalogue channels configuration
+                val channelsLabel = TextView(context).apply {
+                    text = "Custom Catalogue Channels (comma-separated usernames or IDs):"
+                    setTextColor(Color.WHITE)
+                }
+
+                val currentChannels = TelegramRepository.getCustomChannels(context).joinToString(", ")
+
+                val channelsInput = EditText(context).apply {
+                    inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE
+                    minLines = 2
+                    hint = "@my_channel, -1001234567"
+                    setText(currentChannels)
+                    setTextColor(Color.WHITE)
+                    setHintTextColor(Color.GRAY)
+                }
+
+                val btnSaveChannels = Button(context).apply {
+                    text = "Save Catalogue Channels"
+                    setOnClickListener {
+                        val input = channelsInput.text.toString()
+                        val list = input.split(",", " ", "\n", "\r", ";").map { it.trim() }.filter { it.isNotEmpty() }
+                        TelegramRepository.saveCustomChannels(context, list)
+                        Toast.makeText(context, "Catalogue channels saved!", Toast.LENGTH_SHORT).show()
+                        
+                        // Force TDLib to sync chats so raw IDs are cached
+                        kotlinx.coroutines.GlobalScope.launch {
+                            try {
+                                var loaded = false
+                                var attempt = 0
+                                while (!loaded && attempt < 5) {
+                                    try {
+                                        TelegramClient.sendRequest(org.drinkless.tdlib.TdApi.LoadChats(org.drinkless.tdlib.TdApi.ChatListMain(), 100))
+                                        attempt++
+                                    } catch (e: Exception) {
+                                        loaded = true
+                                    }
+                                }
+                            } catch (e: Exception) {}
+                        }
+                    }
+                }
+
+                val cacheLimitLabel = TextView(context).apply {
+                    text = "Cache Limit in MB (0 = No Cache, -1 = No Limit):"
+                    setTextColor(Color.WHITE)
+                }
+
+                val currentLimit = TelegramRepository.getCacheLimitMb(context)
+                val cacheLimitInput = EditText(context).apply {
+                    inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_SIGNED
+                    hint = "1"
+                    setText(currentLimit.toString())
+                    setTextColor(Color.WHITE)
+                    setHintTextColor(Color.GRAY)
+                }
+
+                val btnSaveCacheLimit = Button(context).apply {
+                    text = "Save Cache Limit"
+                    setOnClickListener {
+                        val limitStr = cacheLimitInput.text.toString().trim()
+                        val limit = limitStr.toLongOrNull() ?: 1L
+                        TelegramRepository.saveCacheLimitMb(context, limit)
+                        TelegramClient.updateCacheLimit(limit)
+                        Toast.makeText(context, "Cache limit saved!", Toast.LENGTH_SHORT).show()
+                    }
+                }
+
+                val bufferLimitLabel = TextView(context).apply {
+                    text = "Buffer Size in MB (0 = No prefetch, -1 = Unlimited):"
+                    setTextColor(Color.WHITE)
+                }
+
+                val currentBuffer = TelegramRepository.getBufferSizeMb(context)
+                val bufferLimitInput = EditText(context).apply {
+                    inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_SIGNED
+                    hint = "20"
+                    setText(currentBuffer.toString())
+                    setTextColor(Color.WHITE)
+                    setHintTextColor(Color.GRAY)
+                }
+
+                val btnSaveBufferLimit = Button(context).apply {
+                    text = "Save Buffer Size"
+                    setOnClickListener {
+                        val limitStr = bufferLimitInput.text.toString().trim()
+                        val limit = limitStr.toLongOrNull() ?: 20L
+                        TelegramRepository.saveBufferSizeMb(context, limit)
+                        TelegramStreamingProxy.prefetchSizeMb = limit
+                        Toast.makeText(context, "Buffer size saved!", Toast.LENGTH_SHORT).show()
+                    }
+                }
+
+                val cacheText = TextView(context).apply {
+                    text = "Cache Size: Calculating..."
+                    setTextColor(Color.LTGRAY)
+                }
+                viewLifecycleOwner.lifecycleScope.launch {
+                    val size = TelegramRepository.getCacheSize(context)
+                    cacheText.text = "Cache Size: ${formatBytes(size)}"
+                }
+
+                val btnClearCache = Button(context).apply {
+                    text = "Clear Cache"
+                    setOnClickListener {
+                        TelegramRepository.clearCache(context)
+                        cacheText.text = "Cache Size: 0 B"
+                        Toast.makeText(context, "Cache Cleared", Toast.LENGTH_SHORT).show()
+                    }
+                }
+
+                val btnLogout = Button(context).apply {
+                    text = "Disconnect / Logout"
+                    setOnClickListener {
+                        TelegramRepository.disconnect(context)
+                    }
+                }
+
+                formContainer.addView(tv, layoutParams)
+                formContainer.addView(channelsLabel, layoutParams)
+                formContainer.addView(channelsInput, layoutParams)
+                formContainer.addView(btnSaveChannels, layoutParams)
+                formContainer.addView(cacheLimitLabel, layoutParams)
+                formContainer.addView(cacheLimitInput, layoutParams)
+                formContainer.addView(btnSaveCacheLimit, layoutParams)
+                formContainer.addView(bufferLimitLabel, layoutParams)
+                formContainer.addView(bufferLimitInput, layoutParams)
+                formContainer.addView(btnSaveBufferLimit, layoutParams)
+                formContainer.addView(cacheText, layoutParams)
+                formContainer.addView(btnClearCache, layoutParams)
+                formContainer.addView(btnLogout, layoutParams)
+            }
+            is TelegramAuthState.Error -> {
+                val tv = TextView(context).apply {
+                    text = "Error: ${state.message}"
+                    setTextColor(Color.RED)
+                    setTypeface(null, android.graphics.Typeface.BOLD)
+                }
+                val btn = Button(context).apply {
+                    text = "Retry"
+                    setOnClickListener {
+                        TelegramRepository.disconnect(context)
+                        TelegramRepository.startAuth(context)
+                    }
+                }
+                formContainer.addView(tv, layoutParams)
+                formContainer.addView(btn, layoutParams)
+                addDetailedLogView(context, layoutParams)
+            }
+        }
+    }
+
+    private fun addDetailedLogView(context: Context, layoutParams: LinearLayout.LayoutParams) {
+        val logTitle = TextView(context).apply {
+            text = "Detailed Initialization Log:"
+            setTextColor(Color.WHITE)
+            setTypeface(null, android.graphics.Typeface.BOLD)
+        }
+
+        val logTv = TextView(context).apply {
+            text = TelegramClient.readDetailedInitLog(context)
+            setTextColor(Color.YELLOW)
+            textSize = 10f
+            setTextIsSelectable(true)
+        }
+
+        val scroll = ScrollView(context).apply {
+            this.layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(context, 280)
+            ).apply {
+                setMargins(0, 8, 0, 8)
+            }
+            addView(logTv)
+        }
+
+        val helperText = TextView(context).apply {
+            text = "The view shows the latest diagnostics. Copy All Logs copies the full initialization log."
+            setTextColor(Color.LTGRAY)
+            textSize = 11f
+        }
+
+        val btnRow = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+        }
+
+        val refreshButton = Button(context).apply {
+            text = "Refresh Log"
+            setOnClickListener {
+                logTv.text = TelegramClient.readDetailedInitLog(context)
+            }
+        }
+
+        val copyButton = Button(context).apply {
+            text = "Copy All Logs"
+            setOnClickListener {
+                val allLogs = TelegramClient.readAllDetailedInitLog(context)
+                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                clipboard.setPrimaryClip(ClipData.newPlainText("Telegram TDLib init log", allLogs))
+                Toast.makeText(context, "All logs copied", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        btnRow.addView(
+            refreshButton,
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        )
+        btnRow.addView(
+            copyButton,
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        )
+
+        formContainer.addView(logTitle, layoutParams)
+        formContainer.addView(helperText, layoutParams)
+        formContainer.addView(scroll)
+        formContainer.addView(btnRow, layoutParams)
+    }
+
+    private fun dp(context: Context, value: Int): Int {
+        val scale = context.resources.displayMetrics.density
+        return (value * scale + 0.5f).toInt()
+    }
+
+    private fun formatBytes(bytes: Long): String = when {
+        bytes <= 0 -> "0 B"
+        bytes >= 1_000_000_000 -> "%.2f GB".format(bytes / 1_000_000_000.0)
+        bytes >= 1_000_000 -> "%.1f MB".format(bytes / 1_000_000.0)
+        else -> "%.0f KB".format(bytes / 1_000.0)
+    }
+
+    private var View.padding: Int
+        get() = paddingLeft
+        set(value) {
+            val scale = resources.displayMetrics.density
+            val p = (value * scale + 0.5f).toInt()
+            setPadding(p, p, p, p)
+        }
+}
