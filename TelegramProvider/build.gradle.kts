@@ -15,7 +15,7 @@ cloudstream {
     // All of these properties are optional, you can safely remove any of them.
 
     description = "Stream any media from your Telegram chats and channels on-demand"
-    authors = listOf("Antigravity")
+    authors = listOf("zoneofmakos")
 
     /**
     * Status int as one of the following:
