@@ -159,7 +159,7 @@ object TelegramStreamingProxy {
                     }
                     if (count <= 0) {
                         synchronized(activeStreams) { activeStreams.remove(fileId) }
-                        
+
                         // Immediately stop background downloading to save data
                         scope.launch {
                             runCatching {
@@ -169,7 +169,7 @@ object TelegramStreamingProxy {
                                 })
                             }
                         }
-                        
+
                         scope.launch {
                             delay(5000)
                             if ((activeStreams[fileId] ?: 0) <= 0) {
@@ -210,7 +210,7 @@ object TelegramStreamingProxy {
         val exactSize = fileInfo?.second?.takeIf { it > 0 } ?: urlSize.takeIf { it > 0 }
         val totalSize = exactSize ?: fileInfo?.third?.takeIf { it > 0 } ?: 0L
         val localPath = fileInfo?.first
-        
+
         Log.d(TAG, "Streaming fileId=$fileId totalSize=$totalSize range=$rangeHeader")
 
         if (totalSize <= 0L) {
@@ -233,7 +233,7 @@ object TelegramStreamingProxy {
 
         val ext = fileName?.substringAfterLast('.', "")?.lowercase()?.takeIf { it.isNotBlank() }
             ?: localPath?.substringAfterLast('.', "")?.lowercase() ?: ""
-            
+
         val mimeType = when (ext) {
             "mkv" -> "video/x-matroska"
             "webm" -> "video/webm"
@@ -266,6 +266,13 @@ object TelegramStreamingProxy {
             val chunkSize = minOf(CHUNK_SIZE.toLong(), end - offset + 1).toInt()
 
             if (offset >= activeDownloadEnd) {
+                // Cancel previous download range before starting a new one.
+                // Without this, TDLib accumulates successive DownloadFile ranges
+                // and downloads far beyond the configured buffer size.
+                runCatching {
+                    TelegramClient.sendRequest(TdApi.CancelDownloadFile(fileId, false))
+                }
+
                 val tdlibPrefetch = when {
                     prefetchSizeMb == -1L -> 0L // 0 in TDLib means unlimited
                     prefetchSizeMb <= 0L -> chunkSize.toLong()
@@ -366,11 +373,11 @@ object TelegramStreamingProxy {
                 } catch (e: Exception) {
                     null
                 }
-                
+
                 if (data != null && data.data.isNotEmpty()) {
                     return@withTimeoutOrNull data.data
                 }
-                
+
                 val file = try { TelegramClient.sendRequest(TdApi.GetFile(fileId)) as? TdApi.File } catch (e: Exception) { null }
                 if (file?.local?.isDownloadingCompleted == true) {
                     val finalData = try {
@@ -380,7 +387,7 @@ object TelegramStreamingProxy {
                     } catch (e: Exception) { null }
                     return@withTimeoutOrNull finalData?.data
                 }
-                
+
                 delay(POLL_INTERVAL_MS)
                 attempts++
             }
