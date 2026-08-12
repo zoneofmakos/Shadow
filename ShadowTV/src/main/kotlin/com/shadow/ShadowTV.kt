@@ -191,7 +191,34 @@ class ShadowTV(
                     val licUrl = source.license_url ?: ""
                     var kid = ""; var key = ""
 
+                    // fetch MPD upfront; capture any Set-Cookie for the player
+                    val mpdResponse = app.get(source.mpd_url, headers = headers)
+                    val mpdText     = mpdResponse.text
+                    mpdResponse.headers.values("set-cookie")
+                        .mapNotNull { it.split(";").firstOrNull()?.trim() }
+                        .filter     { it.contains("=") }
+                        .takeIf     { it.isNotEmpty() }
+                        ?.let { cookies ->
+                            val existing = headers["cookie"]?.let { "$it; " } ?: ""
+                            headers["cookie"] = existing + cookies.joinToString("; ")
+                        }
+
                     when {
+                        // JWK set from M3U — fetch MPD for actual KID, match against key list
+                        licUrl.startsWith("jwks:") -> {
+                            val jwksJson = licUrl.removePrefix("jwks:")
+                            val rawKid   = Regex("""cenc:default_KID=["']([0-9a-fA-F\-]{36})["']""")
+                                .find(mpdText)?.groupValues?.get(1)
+                            if (rawKid != null) {
+                                val b64Kid = rawKid.hexToBase64Url()
+                                @Suppress("UNCHECKED_CAST")
+                                val matched = (parseJson<Map<String, Any>>(jwksJson)["keys"]
+                                    as? List<Map<String, String>>)
+                                    ?.firstOrNull { it["kid"] == b64Kid }
+                                kid = matched?.get("kid") ?: ""
+                                key = matched?.get("k")   ?: ""
+                            }
+                        }
                         // Inline hex keys embedded in a dummy URL: keyid=<hex>&key=<hex>
                         // Produced by the M3U parser for type2 (#KODIPROP hex:hex) and
                         // by CP JSON (sony-token URL already has keyid/key params).
@@ -203,7 +230,6 @@ class ShadowTV(
                         }
                         // Remote licence server — fetch MPD to extract KID, then POST
                         licUrl.isNotEmpty() -> {
-                            val mpdText = app.get(source.mpd_url, headers = headers).text
                             val rawKid  = Regex("""cenc:default_KID=["']([0-9a-fA-F\-]{36})["']""")
                                 .find(mpdText)?.groupValues?.get(1)
                                 ?: UUID.randomUUID().toString()
@@ -329,6 +355,7 @@ class ShadowTV(
                 l.startsWith("#KODIPROP:inputstream.adaptive.license_key=") -> {
                     val v = l.substringAfter("license_key=").trim()
                     licUrl = when {
+                        v.startsWith("{")  -> "jwks:$v"
                         v.contains("://") -> v
                         v.contains(":") -> v.split(":", limit = 2).let { p ->
                             if (p.size == 2) "https://dummy.ck/?keyid=${p[0]}&key=${p[1]}" else ""

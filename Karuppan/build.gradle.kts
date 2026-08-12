@@ -1,7 +1,6 @@
 version = 2
 
 cloudstream {
-    description = "Karuppan Protection Plugin"
     authors = listOf("errorcodeQQ","Reflex1337", "zoneofmakos")
     status = 1
     tvTypes = listOf("Others")
