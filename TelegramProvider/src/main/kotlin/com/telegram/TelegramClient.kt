@@ -100,6 +100,14 @@ object TelegramClient {
                 val versionSuffix = if (targetEntry.crc >= 0) targetEntry.crc.toString(16) else targetEntry.size.toString()
                 val classLoaderHash = TelegramClient::class.java.classLoader?.hashCode()?.toString(16) ?: "unknown"
                 val targetFile = File(nativeDir, "libtdjni-$abi-$versionSuffix-$classLoaderHash.so")
+
+                // Cleanup old native libraries to prevent disk space leaks on plugin reloads
+                nativeDir.listFiles()?.forEach { file ->
+                    if (file.isFile && file.name != targetFile.name && file.name.startsWith("libtdjni-")) {
+                        try { file.delete() } catch (_: Throwable) {}
+                    }
+                }
+
                 stepLog(
                     context,
                     "destFile path is ${targetFile.absolutePath}, exists=${targetFile.exists()}, length=${targetFile.length()}"
@@ -309,7 +317,7 @@ object TelegramClient {
             updateCacheLimit(limitMb)
         })
     }
-    
+
     fun updateCacheLimit(limitMb: Long) {
         val tdlibLimit = when {
             limitMb == -1L -> 0L // 0 means unlimited in TDLib
@@ -391,7 +399,7 @@ object TelegramClient {
             is TdApi.AuthorizationStateReady -> {
                 scope.launch {
                     val user = sendRequest(TdApi.GetMe()) as? TdApi.User
-                    
+
                     // Force TDLib to load chats from server into local cache
                     // This ensures raw -100 IDs can be resolved properly.
                     try {
