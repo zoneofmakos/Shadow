@@ -1,6 +1,6 @@
 @file:Suppress("UnstableApiUsage")
 
-version = 6
+version = 7
 
 android {
     defaultConfig {

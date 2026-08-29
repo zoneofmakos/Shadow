@@ -362,7 +362,9 @@ class ShadowTV(
                     ChannelSource(
                         mpd_url = if (isDash) streamUrl else null,
                         m3u8_url = if (!isDash) streamUrl else null,
-                        license_url = null,
+                        license_url = if (isDash && !raw.keyId.isNullOrBlank() && !raw.key.isNullOrBlank())
+                            "https://dummy.ck/?keyid=${raw.keyId}&key=${raw.key}"
+                            else null,
                         headers = headers,
                         sourceStreamName = sourceStreamName
                     )
@@ -446,7 +448,7 @@ class ShadowTV(
                 // Stream URL line → emit a Channel
                 !l.startsWith("#") && l.isNotEmpty() -> {
                     val parts  = l.split("|")
-                    val rawUrl = parts[0].trim()
+                    val rawUrl = parts[0].trim().replace(Regex("[&?]xxx=[^&]*"), "")
                     val params = parts.getOrElse(1) { "" }
 
                     // Inline pipe params take priority over accumulated directives
