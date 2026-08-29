@@ -64,6 +64,17 @@ data class CloudPlayChannel(
     val expires_in:  Any?
 )
 
+data class PremiumPlugChannel(
+    val id: String?,
+    val key: String?,
+    val url: String?,
+    val logo: String?,
+    val name: String?,
+    val keyId: String?,
+    val category: String?,
+    val cookie: String?
+)
+
 class ShadowTV(
     val streams: List<SourceStream> = emptyList()
 ) : MainAPI() {
@@ -107,7 +118,8 @@ class ShadowTV(
 
         val parsed: List<Channel> = when (type) {
             "m3u", "m3u8" -> parseM3u(text, src.name, src.ua)
-            "cloudplay"        -> parseCloudPlayChannels(text, src.name, src.ua)
+            "cloudplay"   -> parseCloudPlayChannels(text, src.name, src.ua)
+            "premiumplug" -> parsePremiumPlugChannels(text, src.name, src.ua)
             else          -> emptyList()
         }
 
@@ -313,6 +325,54 @@ class ShadowTV(
             )
         }
     } catch (_: Exception) { emptyList() }
+
+    private fun parsePremiumPlugChannels(
+        text: String,
+        sourceStreamName: String?,
+        sourceUA: String?
+    ): List<Channel> = try {
+
+        val defaultUA = sourceUA ?: "okhttp/4.12.0"
+
+        parseJson<List<PremiumPlugChannel>>(text).mapNotNull { raw ->
+
+            val channelName = raw.name?.takeIf { it.isNotBlank() }
+                ?: return@mapNotNull null
+
+            val streamUrl = raw.url?.takeIf { it.isNotBlank() }
+                ?: return@mapNotNull null
+
+            val headers = mutableMapOf<String, String>()
+
+            headers["User-Agent"] = defaultUA
+
+            raw.cookie
+                ?.takeIf { it.isNotBlank() }
+                ?.let {
+                    headers["Cookie"] = it
+                }
+
+            val isDash = streamUrl.contains(".mpd", ignoreCase = true)
+
+            Channel(
+                name = channelName,
+                logo = raw.logo,
+                group = raw.category?.takeIf { it.isNotBlank() },
+                sources = mutableListOf(
+                    ChannelSource(
+                        mpd_url = if (isDash) streamUrl else null,
+                        m3u8_url = if (!isDash) streamUrl else null,
+                        license_url = null,
+                        headers = headers,
+                        sourceStreamName = sourceStreamName
+                    )
+                )
+            )
+        }
+
+    } catch (_: Exception) {
+        emptyList()
+    }
 
     /**
      * Parse an M3U playlist (all type1–type3 variants) into [Channel] / [ChannelSource] objects.
