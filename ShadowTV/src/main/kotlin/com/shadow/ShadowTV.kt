@@ -211,8 +211,8 @@ class ShadowTV(
                         .filter     { it.contains("=") }
                         .takeIf     { it.isNotEmpty() }
                         ?.let { cookies ->
-                            val existing = headers["cookie"]?.let { "$it; " } ?: ""
-                            headers["cookie"] = existing + cookies.joinToString("; ")
+                            val existing = headers["Cookie"]?.let { "$it; " } ?: ""
+                            headers["Cookie"] = existing + cookies.joinToString("; ")
                         }
 
                     when {
@@ -436,13 +436,18 @@ class ShadowTV(
                             referer = opt.substringAfter("=")
                         opt.startsWith("http-origin=", ignoreCase = true) ->
                             origin = opt.substringAfter("=")
+                        opt.startsWith("http-cookie=", ignoreCase = true) ->
+                            cookie = opt.substringAfter("=")
                     }
                 }
 
                 l.startsWith("#EXTHTTP:") -> try {
-                    cookie = parseJson<Map<String, String>>(
-                        l.substringAfter("#EXTHTTP:")
-                    )["cookie"] ?: ""
+                    val map = parseJson<Map<String, String>>(l.substringAfter("#EXTHTTP:"))
+                        .entries.associate { it.key.lowercase() to it.value }
+                    map["user-agent"]?.let { userAgent = it }
+                    map["referer"]?.let    { referer   = it }
+                    map["origin"]?.let     { origin    = it }
+                    map["cookie"]?.let     { cookie    = it }
                 } catch (_: Exception) {}
 
                 // Stream URL line → emit a Channel
@@ -460,11 +465,19 @@ class ShadowTV(
                         .find(params)?.groupValues?.get(1)?.trim()
                         .takeIf { !it.isNullOrEmpty() } ?: referer
 
+                    val finalOrigin = Regex("Origin=([^|&]+)", RegexOption.IGNORE_CASE)
+                        .find(params)?.groupValues?.get(1)?.trim()
+                        .takeIf { !it.isNullOrEmpty() } ?: origin
+
+                    val finalCookie = Regex("Cookie=([^|&]+)", RegexOption.IGNORE_CASE)
+                        .find(params)?.groupValues?.get(1)?.trim()
+                        .takeIf { !it.isNullOrEmpty() } ?: cookie
+
                     val hdrs = mutableMapOf<String, String>()
                     hdrs["User-Agent"] = finalUA.ifEmpty { defaultUA }
-                    if (finalRef.isNotEmpty()) hdrs["Referer"] = finalRef
-                    if (origin.isNotEmpty())   hdrs["Origin"]  = origin
-                    if (cookie.isNotEmpty())   hdrs["cookie"]  = cookie
+                    if (finalRef.isNotEmpty())    hdrs["Referer"] = finalRef
+                    if (finalOrigin.isNotEmpty()) hdrs["Origin"]  = finalOrigin
+                    if (finalCookie.isNotEmpty()) hdrs["Cookie"]  = finalCookie
 
                     // Type inferred from URL: .mpd → DASH, anything else → HLS
                     val isDash = rawUrl.contains(".mpd", ignoreCase = true)
