@@ -6,7 +6,7 @@ import org.jsoup.nodes.Element
 import android.content.Context
 
 class MoviesdaProvider : MainAPI() {
-    override var mainUrl = "https://moviesda33.com"
+    override var mainUrl = "https://moviezda.com"
     override var name = "Moviesda"
     override val hasMainPage = true
     override var lang = "ta"
