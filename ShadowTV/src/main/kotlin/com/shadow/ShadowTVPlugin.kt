@@ -15,11 +15,12 @@ class ShadowTVPlugin : Plugin() {
     private val sharedPref = activity?.getSharedPreferences("ShadowTV", Context.MODE_PRIVATE)
     private val sourceUrl = "https://raw.githubusercontent.com/zoneofmakos/data/main/my.json"
 
-    private val sourceStreams = runBlocking {
-        val sourceData = app.get(sourceUrl).text.trim()
-        val sourceStreamsFromJson = parseJson<List<SourceStream>>(sourceData)
-        sourceStreamsFromJson.map { it.name to it }.toMap()
+    private val sourceData = runBlocking {
+        app.get(sourceUrl).text.trim()
     }
+
+    val sourceStreamsFromJson = parseJson<List<SourceStream>>(sourceData)
+    val sourceStreams = sourceStreamsFromJson.map { it.name to it }.toMap()
 
     override fun load(context: Context) {
         val sourceStreamSettings = sourceStreams.keys.associateWith {
@@ -28,7 +29,14 @@ class ShadowTVPlugin : Plugin() {
         val selectedSources = sourceStreamSettings.filter { it.value }.keys // names
         val selectedStreams = selectedSources.map { sourceStreams[it] } // SourceStream objects
 
-        registerMainAPI(ShadowTV(selectedStreams.filterNotNull()))
+        registerMainAPI(ShadowTV("Shadow TV", selectedStreams.filterNotNull()))
+
+        registerMainAPI(ShadowTV("📺 DRM Live", listOf(SourceStream(
+            "DRM Live",
+            "https://la.drmlive.net/tp/playlist",
+            "m3u",
+            "OTT Navigator/1.7.1.4 (Linux;Android 13; en; 1fin92n)",
+        ))))
 
         openSettings = { ctx ->
             val activity = ctx as AppCompatActivity

@@ -25,7 +25,6 @@ import java.util.UUID
 
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import kotlinx.coroutines.runBlocking
 
 data class SourceStream(
     val name: String,
@@ -76,9 +75,9 @@ data class PremiumPlugChannel(
 )
 
 class ShadowTV(
+    override var name: String,
     val streams: List<SourceStream> = emptyList()
 ) : MainAPI() {
-    override var name = "Shadow TV"
     override var lang = "ta"
 
     override val hasMainPage          = true
@@ -86,8 +85,28 @@ class ShadowTV(
     override val supportedTypes       = setOf(TvType.Live)
 
     private val client = OkHttpClient()
-    private val channelCache = mutableMapOf<String, Channel>()
+    private val homeSectionsCache = mutableMapOf<String, List<String>>()
 
+    /**
+    * Populate [homeSectionsCache] from [homeUrl].
+    * Guard prevents double-fetch on warm cache.
+    */
+    private suspend fun ensureHomeSectionsCachePopulated() {
+        if (homeSectionsCache.isNotEmpty()) return
+
+        val homeUrl = "https://raw.githubusercontent.com/zoneofmakos/data/main/home.json"
+
+        try {
+            val sections = parseJson<Map<String, List<String>>>(
+                app.get(homeUrl).text.trim()
+            )
+            homeSectionsCache.putAll(sections)
+        } catch (_: Exception) {
+            // Keep cache empty so a later call can retry.
+        }
+    }
+
+    private val channelCache = mutableMapOf<String, Channel>()
     /**
      * Populate [channelCache] from every declared [SourceStream].
      * If a channel name already exists, sources are **appended** — never replaced.
@@ -133,17 +152,11 @@ class ShadowTV(
         }
     }
 
-    private val homeUrl = "https://raw.githubusercontent.com/zoneofmakos/data/main/home.json"
-    private val homeSections = runBlocking {
-        parseJson<Map<String, List<String>>>(
-            app.get(homeUrl).text.trim()
-        )
-    }
-
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         ensureCachePopulated()
+        ensureHomeSectionsCachePopulated()
 
-        val sections = homeSections.mapNotNull { (sectionName, channelNames) ->
+        val sections = homeSectionsCache.mapNotNull { (sectionName, channelNames) ->
             val items = channelNames.mapNotNull { name ->
                 channelCache[name.trim().lowercase()]
             }.map { ch ->
