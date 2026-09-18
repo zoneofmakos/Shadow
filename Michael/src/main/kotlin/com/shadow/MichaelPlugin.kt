@@ -2,40 +2,35 @@ package com.shadow
 
 import android.content.Context
 import com.lagradost.cloudstream3.plugins.*
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @CloudstreamPlugin
 class MichaelPlugin : Plugin() {
 
     override fun load(context: Context) {
-        val prefsName = "CNCVerseSubscription"
-        val prefs = context.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
+        val today = SimpleDateFormat("yyyyMMdd", Locale.US).format(Date())
+        val now = System.currentTimeMillis()
 
-        val now = System.currentTimeMillis() / 1000L
-        val twentyEightDays = 28L * 24 * 60 * 60
-        val renewalThreshold = 2L * 24 * 60 * 60
+        val cncversePrefs = context.getSharedPreferences(
+            "cncverse_donation",
+            Context.MODE_PRIVATE
+        )
 
-        val editor = prefs.edit()
+        val phisherPrefs = context.getSharedPreferences(
+            "phisher_donation_prefs",
+            Context.MODE_PRIVATE
+        )
 
-        if (!prefs.getBoolean("dont_show_ads_popup", false)) {
-            editor.putBoolean("dont_show_ads_popup", true)
-        }
+        val cncverseEditor = cncversePrefs.edit()
+        val phisherEditor = phisherPrefs.edit()
 
-        if (prefs.getString("mode", null) != "subscription") {
-            editor.putString("mode", "subscription")
-        }
+        cncverseEditor.putString("last_shown_day", today)
 
-        val expiresAt = prefs.getLong("expires_at", 0L)
+        phisherEditor.putLong("phisher_donation_last_shown_v2", now)
 
-        if (expiresAt == 0L) {
-            editor.putLong("expires_at", now + twentyEightDays)
-        } else {
-            val remaining = expiresAt - now
-
-            if (remaining <= renewalThreshold) {
-                editor.putLong("expires_at", now + twentyEightDays)
-            }
-        }
-
-        editor.apply()
+        cncverseEditor.apply()
+        phisherEditor.apply()
     }
 }
