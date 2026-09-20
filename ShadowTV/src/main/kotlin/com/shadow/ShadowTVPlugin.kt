@@ -34,7 +34,7 @@ class ShadowTVPlugin : Plugin() {
         sourceStreams.values
             .filter { it.sa == true }
             .forEach { sourceStream ->
-                registerMainAPI(ShadowTV("♥ ${sourceStream.name}", sourceStream))
+                registerMainAPI(ShadowTV("♥ ${sourceStream.name}", listOf(sourceStream)))
             }
 
         openSettings = { ctx ->
