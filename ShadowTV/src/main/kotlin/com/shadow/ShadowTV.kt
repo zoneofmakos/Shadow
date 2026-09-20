@@ -31,6 +31,7 @@ data class SourceStream(
     val url:  String,
     val type: String,           // "m3u" | "m3u8" → M3U parser   "json" → JSON parser
     val ua:   String?,
+    val sa:   Boolean?,         // stand-alone extension
 )
 
 data class Channel(

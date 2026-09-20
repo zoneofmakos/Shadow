@@ -31,12 +31,11 @@ class ShadowTVPlugin : Plugin() {
 
         registerMainAPI(ShadowTV("Shadow TV", selectedStreams.filterNotNull()))
 
-        registerMainAPI(ShadowTV("📺 DRM Live", listOf(SourceStream(
-            "DRM Live",
-            "https://la.drmlive.net/tp/playlist",
-            "m3u",
-            "OTT Navigator/1.7.1.4 (Linux;Android 13; en; 1fin92n)",
-        ))))
+        sourceStreams.values
+            .filter { it.sa == true }
+            .forEach { sourceStream ->
+                registerMainAPI(ShadowTV("♥ ${sourceStream.name}", sourceStream))
+            }
 
         openSettings = { ctx ->
             val activity = ctx as AppCompatActivity
