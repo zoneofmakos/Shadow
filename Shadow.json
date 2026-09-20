@@ -1,5 +1,6 @@
 {
     "name": "Shadow",
+    "iconUrl": "https://raw.githubusercontent.com/zoneofmakos/Shadow/main/icon.png",
     "description": "Personal and opionated repo",
     "manifestVersion": 1,
     "pluginLists": [
