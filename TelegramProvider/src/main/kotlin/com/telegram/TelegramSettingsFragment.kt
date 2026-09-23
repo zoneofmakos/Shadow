@@ -11,6 +11,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.*
 import androidx.lifecycle.lifecycleScope
+import androidx.core.widget.NestedScrollView
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import kotlinx.coroutines.launch
 
@@ -57,7 +58,14 @@ class TelegramSettingsFragment(private val plugin: TelegramPlugin) : BottomSheet
         }
         mainContainer.addView(formContainer)
 
-        return mainContainer
+        return NestedScrollView(context).apply {
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+            isFillViewport = true
+            addView(mainContainer)
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -265,7 +273,7 @@ class TelegramSettingsFragment(private val plugin: TelegramPlugin) : BottomSheet
                         val list = input.split(",", " ", "\n", "\r", ";").map { it.trim() }.filter { it.isNotEmpty() }
                         TelegramRepository.saveCustomChannels(context, list)
                         Toast.makeText(context, "Catalogue channels saved!", Toast.LENGTH_SHORT).show()
-                        
+
                         // Force TDLib to sync chats so raw IDs are cached
                         kotlinx.coroutines.GlobalScope.launch {
                             try {
