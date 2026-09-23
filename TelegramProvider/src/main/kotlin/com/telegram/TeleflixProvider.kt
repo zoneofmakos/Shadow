@@ -216,7 +216,7 @@ class TeleflixProvider : MainAPI() {
         // ── Step 2: Fallback filename queries if ID search empty ───────
         if (results.isEmpty()) {
             val queries = mutableSetOf<String>()
-            queries.add(searchTitle)
+            queries.add(searchTitle) // "Chernobyl S01E01"
 
             // {1,4} for episode here too
             val sxxEyyRegex = Regex("(?i)S(\\d{1,2})E(\\d{1,4})")
@@ -227,13 +227,13 @@ class TeleflixProvider : MainAPI() {
                 val baseName = searchTitle.substring(0, match.range.first).trim()
                 val sStr = String.format("%02d", s)
                 val eStr = String.format("%02d", e)
-                queries.add("$baseName ${s}x$eStr")
-                queries.add("$baseName ${s}x$e")
-                queries.add("$baseName S$sStr E$eStr")
-                queries.add("$baseName Season $s Episode $e")
-                queries.add("$baseName S$s E$e")
-                queries.add(baseName)
-                queries.add(baseName.replace(" ", ""))
+                queries.add("$baseName S$sStr E$eStr") // "Chernobyl S01 E01"
+                queries.add("$baseName S$s E$e") // "Chernobyl S1 E1"
+                // queries.add("$baseName ${s}x$eStr") // "Chernobyl 1x01"
+                // queries.add("$baseName ${s}x$e") // "Chernobyl 1x1"
+                // queries.add("$baseName Season $s Episode $e") // "Chernobyl Season 1 Episode 1"
+                // queries.add(baseName) // "Chernobyl"
+                // queries.add(baseName.replace(" ", "")) // "BreakingBad"
             }
 
             val punctRegex = Regex("[^a-zA-Z0-9 ]")
