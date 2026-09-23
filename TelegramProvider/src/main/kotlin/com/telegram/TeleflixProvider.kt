@@ -13,7 +13,8 @@ import org.json.JSONObject
 import org.drinkless.tdlib.TdApi
 
 class TeleflixProvider : MainAPI() {
-    override var mainUrl = "https://v3-cinemeta.strem.io"
+    // override var mainUrl = "https://v3-cinemeta.strem.io"
+    override var mainUrl = "https://cinemeta-live.strem.io"
     override var name = "Teleflix"
     override val hasMainPage = true
     override var lang = "en"
