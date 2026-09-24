@@ -111,7 +111,7 @@ class TeleflixProvider : MainAPI() {
                 val data = "${meta.id}|${meta.name} $epCode"
 
                 newEpisode(video.title ?: "Episode $ep") {
-                    this.name = video.title ?: "Episode $ep"
+                    this.name = video.title ?: video.name ?: "Episode $ep"
                     this.data = data
                     this.season = season
                     this.episode = ep
@@ -125,7 +125,10 @@ class TeleflixProvider : MainAPI() {
                 this.posterUrl = meta.poster
                 this.backgroundPosterUrl = meta.background
                 this.plot = meta.description
-                this.year = meta.year?.toIntOrNull()
+                this.year = (meta.year ?: meta.releaseInfo)
+                    ?.substringBefore("-")
+                    ?.trim()
+                    ?.toIntOrNull()
                 this.score = score
                 this.tags = tags
                 this.actors = actors
@@ -141,7 +144,9 @@ class TeleflixProvider : MainAPI() {
                 this.posterUrl = meta.poster
                 this.backgroundPosterUrl = meta.background
                 this.plot = meta.description
-                this.year = meta.year?.toIntOrNull()
+                this.year = (meta.year ?: meta.releaseInfo)
+                    ?.trim()
+                    ?.toIntOrNull()
                 this.score = score
                 this.tags = tags
                 this.actors = actors
@@ -301,6 +306,7 @@ class TeleflixProvider : MainAPI() {
         val logo: String? = null,
         val description: String?,
         val year: String?,
+        val releaseInfo: String?,
         val genres: List<String>? = null,
         val runtime: String? = null,
         val cast: List<String>? = null,
@@ -311,6 +317,7 @@ class TeleflixProvider : MainAPI() {
     private data class CinemetaVideo(
         val id: String,
         val title: String?,
+        val name: String?,
         val season: Int?,
         val episode: Int?,
         val thumbnail: String?,
