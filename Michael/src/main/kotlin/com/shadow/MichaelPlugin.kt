@@ -23,14 +23,23 @@ class MichaelPlugin : Plugin() {
             Context.MODE_PRIVATE
         )
 
+        val raghavPrefs = context.getSharedPreferences(
+            "raghav_donation_prefs",
+            Context.MODE_PRIVATE
+        )
+
         val cncverseEditor = cncversePrefs.edit()
         val phisherEditor = phisherPrefs.edit()
+        val raghavEditor = raghavPrefs.edit()
 
         cncverseEditor.putString("last_shown_day", today)
 
         phisherEditor.putLong("phisher_donation_last_shown_v2", now)
 
+        raghavEditor.putLong("raghav_donation_last_shown", now)
+
         cncverseEditor.apply()
         phisherEditor.apply()
+        raghavEditor.apply()
     }
 }
